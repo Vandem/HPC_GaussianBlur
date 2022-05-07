@@ -9,7 +9,6 @@ __kernel void calculate_pixel(
     int col = get_global_id(0);
     int row = get_global_id(1);
 
-    //int localRadius = *radius;
     int radius = *radiusRef;
     int diameter = radius * 2;
     int width = *widthRef;
@@ -43,14 +42,6 @@ __kernel void calculate_pixel(
             }
         }
 
-        //if (sumKernel > 0) {
-        if (col == 0 && row == 0)
-        {
-            //printf("col: %d \n", col);
-            //printf("row: %d \n", row);
-            printf("test: %d", sum / sumKernel);
-        }
         ImgOut[3 * row * width + 3 * col + c] = sum / sumKernel;
-        //}
     }
 }

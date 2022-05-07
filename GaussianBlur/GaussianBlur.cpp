@@ -153,22 +153,23 @@ int main(int argc, char** argv)
 
 	Mat img = cv::imread("C:/Users/josch/FH/PPR/GaussianFilter/background.jpg");
 
-	int radius = 100;
+	int32_t radius = 9;
 	float sigma = 20;
+	int diameter = 2 * radius + 1;
 
-	int width = img.size().width;
-	int height = img.size().height;
+	int32_t width = img.cols;;
+	int32_t height = img.rows;
 
 	Mat out = Mat(height, width, img.type());
 
-	size_t dataSizeImg = img.size().width * img.size().height * 3 * sizeof(uchar);
+	size_t dataSizeImg = width * height * 3 * sizeof(uchar);
 
 	size_t dataSizeRadius = sizeof(int32_t);
-	size_t dataSizeKernel = radius * radius * sizeof(cl_float);
+	size_t dataSizeKernel = diameter * diameter * sizeof(float);
 	size_t dataSizeWidth = sizeof(int32_t);
 	size_t dataSizeHeight = sizeof(int32_t);
 
-	float* gaussKernel = generateKernel(radius * 2, sigma);
+	float* gaussKernel = generateKernel(diameter, sigma);
 
 
 	// used for checking error status of api calls
@@ -262,10 +263,10 @@ int main(int argc, char** argv)
 	// set the kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &bufferImageIn));
 	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &bufferGaussKernel));
+	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufferRadius));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &bufferWidth));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(cl_mem), &bufferHeight));
 	checkStatus(clSetKernelArg(kernel, 5, sizeof(cl_mem), &bufferImageOut));
-	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufferRadius));
 
 	// output device capabilities
 	size_t maxWorkGroupSize;
@@ -288,7 +289,7 @@ int main(int argc, char** argv)
 	// ndrange capabilites only need to be checked when we specify a local work group size manually
 	// in our case we provide NULL as local work group size, which means groups get formed automatically
 	//size_t globalWorkSize = static_cast<size_t>(elementSize);
-	size_t globalWorkSize[2] = { img.size().width, img.size().height };
+	size_t globalWorkSize[2] = { width, height };
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL));
 
 	// read the device output buffer to the host output array
