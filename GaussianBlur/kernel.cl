@@ -1,18 +1,15 @@
 __kernel void calculate_pixel(
     __global const unsigned char* ImgIn,
     __global const float* GaussKernel,
-    __global const int* radiusRef,
-    __global const int* widthRef,
-    __global const int* heightRef,
+    int radius,
+    int width,
+    int height,
     __global unsigned char* ImgOut)
 {
     int col = get_global_id(0);
     int row = get_global_id(1);
 
-    int radius = *radiusRef;
     int diameter = radius * 2;
-    int width = *widthRef;
-    int height = *heightRef;
 
     if (col == 0 && row == 0)
     {
@@ -33,12 +30,26 @@ __kernel void calculate_pixel(
             {
                 float kernelValue = GaussKernel[(x + radius) * diameter + y + radius];
 
-                if ((row + y) >= 0 && (row + y) < height && (col + x) >= 0 && (col + x) < width)
+                //if (row == 0 && col == 0 && c == 0) {
+                //    printf("%f \n", kernelValue);
+                //}
+
+                int rowPixel = row;
+                int colPixel = col;
+
+                if ((row + y) >= 0 && (row + y) < height)
                 {
-                    int color = ImgIn[(row + y) * 3 * width + (col + x) * 3 + c];
-                    sum += color * kernelValue;
-                    sumKernel += kernelValue;
+                    rowPixel += y;
                 }
+
+                if ((col + x) >= 0 && (col + x) < width)
+                {
+                    colPixel += x;
+                }
+
+                float color = ImgIn[rowPixel * 3 * width + colPixel * 3 + c];
+                sum += color * kernelValue;
+                sumKernel += kernelValue;
             }
         }
 

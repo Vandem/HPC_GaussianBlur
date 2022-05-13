@@ -16,9 +16,11 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/highgui.hpp>
+#include "tga.h"
 
 using namespace cv;
 using namespace std;
+using namespace tga;
 
 std::string cl_errorstring(cl_int err)
 {
@@ -151,18 +153,26 @@ float* generateKernel(int diameter, float sigma = 1)
 int main(int argc, char** argv)
 {
 
-	Mat img = cv::imread("C:/Users/josch/FH/PPR/GaussianFilter/background.jpg");
+	//Mat img = cv::imread("lena.jpg");
+	//Mat img = cv::imread("background.jpg");
+	TGAImage img;
+	LoadTGA(&img, "lena.tga");
+	//LoadTGA(&img, "C:/Users/josch/FH/HPC/GaussianBlur/GaussianBlur/GaussianBlur/lena.tga");
+	vector<unsigned char> imgData = img.imageData;
 
 	int32_t radius = 9;
-	float sigma = 20;
+	float sigma = 1;
 	int diameter = 2 * radius + 1;
 
-	int32_t width = img.cols;;
-	int32_t height = img.rows;
+	//int32_t width = img.cols;
+	//int32_t height = img.rows;
+	int32_t width = img.width;
+	int32_t height = img.height;
 
-	Mat out = Mat(height, width, img.type());
+	//Mat out = Mat(height, width, img.type());
+	TGAImage out;
 
-	size_t dataSizeImg = width * height * 3 * sizeof(uchar);
+	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
 
 	size_t dataSizeRadius = sizeof(int32_t);
 	size_t dataSizeKernel = diameter * diameter * sizeof(float);
@@ -215,20 +225,12 @@ int main(int argc, char** argv)
 	checkStatus(status);
 	cl_mem bufferGaussKernel = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSizeKernel, NULL, &status);
 	checkStatus(status);
-	cl_mem bufferRadius = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSizeRadius, NULL, &status);
-	checkStatus(status);
-	cl_mem bufferWidth = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSizeWidth, NULL, &status);
-	checkStatus(status);
-	cl_mem bufferHeight = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSizeHeight, NULL, &status);
-	checkStatus(status);
 	cl_mem bufferImageOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY, dataSizeImg, NULL, &status);
 	checkStatus(status);
 
-	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
+	//checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
+	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, &imgData, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferGaussKernel, CL_TRUE, 0, dataSizeKernel, gaussKernel, 0, NULL, NULL));
-	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferRadius, CL_TRUE, 0, dataSizeRadius, &radius, 0, NULL, NULL));
-	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferWidth, CL_TRUE, 0, dataSizeWidth, &width, 0, NULL, NULL));
-	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferHeight, CL_TRUE, 0, dataSizeHeight, &height, 0, NULL, NULL));
 
 	// read the kernel source
 	const char* kernelFileName = "kernel.cl";
@@ -263,9 +265,9 @@ int main(int argc, char** argv)
 	// set the kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &bufferImageIn));
 	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &bufferGaussKernel));
-	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufferRadius));
-	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &bufferWidth));
-	checkStatus(clSetKernelArg(kernel, 4, sizeof(cl_mem), &bufferHeight));
+	checkStatus(clSetKernelArg(kernel, 2, sizeof(radius), &radius));
+	checkStatus(clSetKernelArg(kernel, 3, sizeof(width), &width));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(height), &height));
 	checkStatus(clSetKernelArg(kernel, 5, sizeof(cl_mem), &bufferImageOut));
 
 	// output device capabilities
@@ -293,11 +295,13 @@ int main(int argc, char** argv)
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL));
 
 	// read the device output buffer to the host output array
-	checkStatus(clEnqueueReadBuffer(commandQueue, bufferImageOut, CL_TRUE, 0, dataSizeImg, out.data, 0, NULL, NULL));
+	checkStatus(clEnqueueReadBuffer(commandQueue, bufferImageOut, CL_TRUE, 0, dataSizeImg, &out.imageData, 0, NULL, NULL));
 
 	// output result
-	imshow("img", img);
-	imshow("out", out);
+	//imshow("img", img);
+	//imshow("out", out);
+
+	saveTGA(out, "lena_blurred.tga");
 
 	// release opencl objects
 	checkStatus(clReleaseKernel(kernel));
