@@ -9,7 +9,7 @@ __kernel void calculate_pixel(
     int col = get_global_id(0);
     int row = get_global_id(1);
 
-    int diameter = radius * 2;
+    int diameter = radius * 2 + 1;
 
     if (col == 0 && row == 0)
     {

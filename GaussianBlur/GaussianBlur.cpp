@@ -123,40 +123,39 @@ void printVector(int32_t* vector, unsigned int elementSize, const char* label)
 	printf("\n");
 }
 
-float* createBlurMask(int maskSize, float sigma) {
-	float* mask = new float[(maskSize * 2 + 1) * (maskSize * 2 + 1)];
+float* calculateGaussKernel(int radius, float sigma) {
+	float* kernel = new float[(radius * 2 + 1) * (radius * 2 + 1)];
 	float sum = 0.0f;
-	for (int a = -maskSize; a < maskSize + 1; a++) {
-		for (int b = -maskSize; b < maskSize + 1; b++) {
+	for (int a = -radius; a < radius + 1; a++) {
+		for (int b = -radius; b < radius + 1; b++) {
 			float temp = exp(-((float)(a * a + b * b) / (2 * sigma * sigma)));
 			sum += temp;
-			mask[a + maskSize + (b + maskSize) * (maskSize * 2 + 1)] = temp;
+			kernel[a + radius + (b + radius) * (radius * 2 + 1)] = temp;
 		}
 	}
 	// Normalize the mask
-	for (int i = 0; i < (maskSize * 2 + 1) * (maskSize * 2 + 1); i++)
-		mask[i] = mask[i] / sum;
+	for (int i = 0; i < (radius * 2 + 1) * (radius * 2 + 1); i++)
+		kernel[i] = kernel[i] / sum;
 
-	return mask;
+	return kernel;
 }
 
 int main(int argc, char** argv)
 {
 	Mat img = cv::imread("lena.jpg");
+	Mat out = Mat(img.rows, img.cols, img.type());
 
 	int32_t radius = 9;
-	float sigma = 5.0f;
-	int diameter = 2 * radius + 1;
+	int32_t diameter = 2 * radius + 1;
+	float sigma = 1.0f;
 
 	int32_t width = img.cols;
 	int32_t height = img.rows;
 
-	Mat out = Mat(img.rows, img.cols, img.type());
+	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
 
-	size_t dataSizeImg = width * height * 3 * sizeof(uchar);
-
-	float* gaussKernel = createBlurMask(diameter, sigma);
-	size_t dataSizeKernel = sizeof(float) * (radius * 2 + 1) * (radius * 2 + 1);
+	float* gaussKernel = calculateGaussKernel(radius, sigma);
+	size_t dataSizeKernel = sizeof(float) * diameter * diameter;
 
 	// used for checking error status of api calls
 	cl_int status;
