@@ -18,18 +18,10 @@
     <ClCompile Include="GaussianBlur.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tga.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="kernel.cl">
       <Filter>Source Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="tga.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

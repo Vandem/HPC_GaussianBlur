@@ -144,13 +144,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="GaussianBlur.cpp" />
-    <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="kernel.cl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="tga.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

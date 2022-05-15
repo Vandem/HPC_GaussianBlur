@@ -16,11 +16,9 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/highgui.hpp>
-#include "tga.h"
 
 using namespace cv;
 using namespace std;
-using namespace tga;
 
 std::string cl_errorstring(cl_int err)
 {
@@ -125,62 +123,40 @@ void printVector(int32_t* vector, unsigned int elementSize, const char* label)
 	printf("\n");
 }
 
-float* generateKernel(int diameter, float sigma = 1)
-{
-	int x, y, mean;
-	float sum;
-
-	float* kernel(new float[diameter * diameter]);
-	mean = diameter / 2;
-	sum = 0.0; // For accumulating the kernel values
-
-	for (x = 0; x < diameter; ++x)
-		for (y = 0; y < diameter; ++y) {
-			kernel[y * diameter + x] = (float)(exp(-0.5 * (pow((x - mean) / sigma, 2.0) + pow((y - mean) / sigma, 2.0))) / (2 * numbers::pi * sigma * sigma));
-
-			// Accumulate the kernel values
-			sum += kernel[y * diameter + x];
+float* createBlurMask(int maskSize, float sigma) {
+	float* mask = new float[(maskSize * 2 + 1) * (maskSize * 2 + 1)];
+	float sum = 0.0f;
+	for (int a = -maskSize; a < maskSize + 1; a++) {
+		for (int b = -maskSize; b < maskSize + 1; b++) {
+			float temp = exp(-((float)(a * a + b * b) / (2 * sigma * sigma)));
+			sum += temp;
+			mask[a + maskSize + (b + maskSize) * (maskSize * 2 + 1)] = temp;
 		}
+	}
+	// Normalize the mask
+	for (int i = 0; i < (maskSize * 2 + 1) * (maskSize * 2 + 1); i++)
+		mask[i] = mask[i] / sum;
 
-	// Normalize the kernel
-	for (x = 0; x < diameter; ++x)
-		for (y = 0; y < diameter; ++y)
-			kernel[y * diameter + x] /= sum;
-
-	return kernel;
+	return mask;
 }
 
 int main(int argc, char** argv)
 {
-
-	//Mat img = cv::imread("lena.jpg");
-	//Mat img = cv::imread("background.jpg");
-	TGAImage img;
-	LoadTGA(&img, "lena.tga");
-	//LoadTGA(&img, "C:/Users/josch/FH/HPC/GaussianBlur/GaussianBlur/GaussianBlur/lena.tga");
-	vector<unsigned char> imgData = img.imageData;
+	Mat img = cv::imread("lena.jpg");
 
 	int32_t radius = 9;
-	float sigma = 1;
+	float sigma = 5.0f;
 	int diameter = 2 * radius + 1;
 
-	//int32_t width = img.cols;
-	//int32_t height = img.rows;
-	int32_t width = img.width;
-	int32_t height = img.height;
+	int32_t width = img.cols;
+	int32_t height = img.rows;
 
-	//Mat out = Mat(height, width, img.type());
-	TGAImage out;
+	Mat out = Mat(img.rows, img.cols, img.type());
 
-	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
+	size_t dataSizeImg = width * height * 3 * sizeof(uchar);
 
-	size_t dataSizeRadius = sizeof(int32_t);
-	size_t dataSizeKernel = diameter * diameter * sizeof(float);
-	size_t dataSizeWidth = sizeof(int32_t);
-	size_t dataSizeHeight = sizeof(int32_t);
-
-	float* gaussKernel = generateKernel(diameter, sigma);
-
+	float* gaussKernel = createBlurMask(diameter, sigma);
+	size_t dataSizeKernel = sizeof(float) * (radius * 2 + 1) * (radius * 2 + 1);
 
 	// used for checking error status of api calls
 	cl_int status;
@@ -229,7 +205,7 @@ int main(int argc, char** argv)
 	checkStatus(status);
 
 	//checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
-	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, &imgData, 0, NULL, NULL));
+	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferGaussKernel, CL_TRUE, 0, dataSizeKernel, gaussKernel, 0, NULL, NULL));
 
 	// read the kernel source
@@ -290,18 +266,15 @@ int main(int argc, char** argv)
 	// execute the kernel
 	// ndrange capabilites only need to be checked when we specify a local work group size manually
 	// in our case we provide NULL as local work group size, which means groups get formed automatically
-	//size_t globalWorkSize = static_cast<size_t>(elementSize);
 	size_t globalWorkSize[2] = { width, height };
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL));
 
 	// read the device output buffer to the host output array
-	checkStatus(clEnqueueReadBuffer(commandQueue, bufferImageOut, CL_TRUE, 0, dataSizeImg, &out.imageData, 0, NULL, NULL));
+	checkStatus(clEnqueueReadBuffer(commandQueue, bufferImageOut, CL_TRUE, 0, dataSizeImg, out.data, 0, NULL, NULL));
 
 	// output result
-	//imshow("img", img);
-	//imshow("out", out);
-
-	saveTGA(out, "lena_blurred.tga");
+	imshow("img", img);
+	imshow("out", out);
 
 	// release opencl objects
 	checkStatus(clReleaseKernel(kernel));

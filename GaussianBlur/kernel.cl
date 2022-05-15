@@ -30,10 +30,6 @@ __kernel void calculate_pixel(
             {
                 float kernelValue = GaussKernel[(x + radius) * diameter + y + radius];
 
-                //if (row == 0 && col == 0 && c == 0) {
-                //    printf("%f \n", kernelValue);
-                //}
-
                 int rowPixel = row;
                 int colPixel = col;
 
