@@ -154,14 +154,13 @@ int main(int argc, char** argv)
 	Mat img = cv::imread("lena.jpg");
 	Mat out = Mat(img.rows, img.cols, img.type());
 
+	int32_t width = img.cols;
+	int32_t height = img.rows;
+	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
+
 	int32_t radius = 9;
 	int32_t diameter = 2 * radius + 1;
 	float sigma = 1.0f;
-
-	int32_t width = img.cols;
-	int32_t height = img.rows;
-
-	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
 
 	float* gaussKernel = generateKernel(diameter, sigma);
 	size_t dataSizeKernel = sizeof(float) * diameter * diameter;
