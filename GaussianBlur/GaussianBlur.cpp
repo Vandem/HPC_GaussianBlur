@@ -8,7 +8,8 @@
 
 #include <fstream>
 #include <string>
-#include <numbers>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -123,19 +124,27 @@ void printVector(int32_t* vector, unsigned int elementSize, const char* label)
 	printf("\n");
 }
 
-float* calculateGaussKernel(int radius, float sigma) {
-	float* kernel = new float[(radius * 2 + 1) * (radius * 2 + 1)];
-	float sum = 0.0f;
-	for (int a = -radius; a < radius + 1; a++) {
-		for (int b = -radius; b < radius + 1; b++) {
-			float temp = exp(-((float)(a * a + b * b) / (2 * sigma * sigma)));
-			sum += temp;
-			kernel[a + radius + (b + radius) * (radius * 2 + 1)] = temp;
+float* generateKernel(int diameter, float sigma = 1.0f)
+{
+	int x, y, mean;
+	float sum;
+
+	float* kernel(new float[diameter * diameter]);
+	mean = diameter / 2;
+	sum = 0.0; // For accumulating the kernel values
+
+	for (x = 0; x < diameter; ++x)
+		for (y = 0; y < diameter; ++y) {
+			kernel[y * diameter + x] = (float)(exp(-0.5 * (pow((x - mean) / sigma, 2.0) + pow((y - mean) / sigma, 2.0))) / (2 * M_PI * sigma * sigma));
+
+			// Accumulate the kernel values
+			sum += kernel[y * diameter + x];
 		}
-	}
-	// Normalize the mask
-	for (int i = 0; i < (radius * 2 + 1) * (radius * 2 + 1); i++)
-		kernel[i] = kernel[i] / sum;
+
+	// Normalize the kernel
+	for (x = 0; x < diameter; ++x)
+		for (y = 0; y < diameter; ++y)
+			kernel[y * diameter + x] /= sum;
 
 	return kernel;
 }
@@ -154,7 +163,7 @@ int main(int argc, char** argv)
 
 	size_t dataSizeImg = width * height * 3 * sizeof(unsigned char);
 
-	float* gaussKernel = calculateGaussKernel(radius, sigma);
+	float* gaussKernel = generateKernel(diameter, sigma);
 	size_t dataSizeKernel = sizeof(float) * diameter * diameter;
 
 	// used for checking error status of api calls
