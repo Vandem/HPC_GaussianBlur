@@ -204,7 +204,6 @@ int main(int argc, char** argv)
 	cl_mem bufferImageOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY, dataSizeImg, NULL, &status);
 	checkStatus(status);
 
-	//checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferImageIn, CL_TRUE, 0, dataSizeImg, img.data, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferGaussKernel, CL_TRUE, 0, dataSizeKernel, gaussKernel, 0, NULL, NULL));
 
